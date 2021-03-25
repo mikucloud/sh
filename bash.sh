@@ -37,7 +37,7 @@ curl -fsSL https://get.docker.com | bash
 systemctl start docker
 service docker start
 systemctl enable docker.service
-systemctl status docker.service
+#systemctl status docker.service
 
 echo 'start aurora ...'
 docker run -d --name=aurora \

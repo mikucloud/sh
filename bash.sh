@@ -1,54 +1,153 @@
-#!/bin/sh
+#!/bin/bash
+EnterNodeID(){
+        read -p "Enter NodeID:" NODEID
+        if [ -z $NODEID ];then
+                echo "ENTER NODEID!"
+                exit
+        fi
+}
+
+GetCertificate(){
+        read -p "Enter your domain to get certificate [domain.com]:" domain
+        if [ -z $domain ];then
+                echo "INPUT DOMAIN!"
+                exit
+        fi
+        curl -fsSL https://github.com/mikucloud/tj/raw/master/sign.sh | bash -s $domain
+}
+
+Trojan(){
+        if ls /root/.cert | grep "key" > /dev/null
+                then
+                read -p "cert exist, do you want change? [y/N]:" input
+                case $input in
+                        [yY][eE][sS]|[yY])
+                                GetCertificate
+                                ;;
+                        *)
+                                echo "There will be no change to the certificate files."
+                                ;;
+                esac
+        else
+                GetCertificate
+        fi
+        echo "trojan starting..."
+        docker run -d --name=trojan_node_$NODEID \
+        -v /root/.cert:/root/.cert \
+        -e API=$1 \
+        -e TOKEN=$2 \
+        -e NODE=$NODEID \
+        -e LICENSE=NULL \
+        -e SYNCINTERVAL=60 \
+        --restart=always \
+        --network=host \
+        mikucloud/tidalab
+}
+
+V2Ray(){
+        if ls /root/.cert | grep "key" > /dev/null
+                then
+                read -p "cert exist, do you want change? [y/N]:" input
+                case $input in
+                        [yY][eE][sS]|[yY])
+                                echo "Yes"
+                                GetCertificate
+                                ;;
+                        *)
+                                echo "There will be no change to the certificate files."
+                                ;;
+                esac
+        else
+                read -p "Cert don't exist, do you want Use TLS? [y/N]:" input
+                case $input in
+                        [yY][eE][sS]|[yY])
+                                GetCertificate
+                                ;;
+                        *)
+                                echo "There will be no change to the certificate files."
+                                ;;
+                esac
+        fi
+        echo "v2ray starting..."
+        docker run -d --name=aurora_node_$NODEID \
+        -v /root/.cert:/root/.cert \
+        -e API=$1 \
+        -e TOKEN=$2 \
+        -e NODE=$NODEID \
+        -e LICENSE=NULL \
+        -e SYNCINTERVAL=60 \
+        --restart=always \
+        --network=host \
+        mikucloud/aurora
+}
+
+SS(){
+        echo "ss here."
+        docker run -d --name=ss_node_$NODEID \
+        -v /root/.cert:/root/.cert \
+        -e API=$1 \
+        -e TOKEN=$2 \
+        -e NODE=$NODEID \
+        -e LICENSE=NULL \
+        -e SYNCINTERVAL=60 \
+        --restart=always \
+        --network=host \
+        mikucloud/ss
+}
+
 echo "                                   "
 echo "       _ _           _           _ "
 echo " _____|_| |_ _ _ ___| |___ _ _ _| |"
 echo "|     | | '_| | |  _| | . | | | . |"
 echo "|_|_|_|_|_,_|___|___|_|___|___|___|"
 echo "                                   "
-
-echo 'Start ...'
-if cat /etc/os-release | grep "centos" > /dev/null
-    then
-    yum install unzip wget curl -y > /dev/null
-    yum update curl -y
-    yum -y install ntpdate
-    timedatectl set-timezone Asia/Shanghai
-    ntpdate ntp1.aliyun.com
-else
-    apt-get install unzip wget curl -y > /dev/null
-    apt-get update curl -y
-    apt-get install -y ntp
-    service ntp restart
-fi
-
-echo 'disable firewalld ...'
+echo
+echo "Preparing :) ..."
+apt-get update
+apt-get install unzip wget curl -y > /dev/null
+apt-get install -y ntp
+service ntp restart
 systemctl disable firewalld
 systemctl stop firewalld
+docker -v
+if [ $? -eq  0 ]; then
+        echo "Docker installed."
+else
+        echo "Install docker..."
+        curl -fsSL https://get.docker.com | bash
+        systemctl start docker
+        service docker start
+        systemctl enable docker.service
+fi
 
-echo 'install docker ...'
-curl -fsSL https://get.docker.com | bash
 
-#echo 'install docker-compose ...'
-#curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-#chmod a+x /usr/local/bin/docker-compose
-#rm -f `which dc`
-#ln -s /usr/local/bin/docker-compose /usr/bin/dc
+echo "Select :
+0. Trojan
+1. V2Ray
+2. SS
+3. Gen Cert
+4. BBRplus
+"
 
-systemctl start docker
-service docker start
-systemctl enable docker.service
-#systemctl status docker.service
-
-echo 'start aurora ...'
-docker run -d --name=aurora \
--v /root/.cert:/root/.cert \
--e API=$1 \
--e TOKEN=$2 \
--e NODE=$3 \
--e LICENSE=$4 \
--e SYNCINTERVAL=60 \
---restart=always \
---network=host \
-mikucloud/aurora
-
-echo 'install competed.'
+read -p " 请输入数字 [0]:" num
+num=${num:-0}
+case "$num" in
+        0)
+        EnterNodeID
+        Trojan
+        ;;
+        1)
+        EnterNodeID
+        V2Ray
+        ;;
+        2)
+        EnterNodeID
+        Ss
+        ;;
+        3)
+        GetCertificate
+        ;;
+        *)
+        echo "Unknown Error."
+        ;;
+esac

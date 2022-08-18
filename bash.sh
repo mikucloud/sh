@@ -41,7 +41,7 @@ Trojan(){
         -e SYNCINTERVAL=60 \
         --restart=always \
         --network=host \
-        mikucloud/tidalab:1.2
+        mikucloud/tidalab
 }
 
 V2Ray(){
@@ -92,7 +92,7 @@ SS(){
         -e SYNCINTERVAL=60 \
         --restart=always \
         --network=host \
-        mikucloud/ss:1.1
+        mikucloud/ss
 }
 
 echo "                                   "
